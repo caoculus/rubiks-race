@@ -17,7 +17,7 @@ leptos_meta = { version = "0.3", default-features = false }
 leptos_router = { version = "0.3", default-features = false }
 log = "0.4"
 simple_logger = "4"
-tokio = { version = "1.25.0", features = ["time", "sync"], optional = true }
+tokio = { version = "1.25.0", features = ["time", "sync"] }
 tower = { version = "0.4.13", optional = true }
 tower-http = { version = "0.4", features = ["fs"], optional = true }
 wasm-bindgen = "=0.2.84"
@@ -30,12 +30,13 @@ futures = "0.3.28"
 bincode = "1.3.3"
 serde = { version = "1.0.164", features = ["derive"] }
 tokio-stream = "0.1.14"
+rand = { version = "0.8.5", optional = true }
+strum = { version = "0.24.1", features = ["derive"] }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum", 
-    "dep:tokio", 
     "dep:tower", 
     "dep:tower-http", 
     "dep:leptos_axum", 
@@ -43,6 +44,7 @@ ssr = [
     "leptos_meta/ssr", 
     "leptos_router/ssr", 
     "dep:tracing",
+    "dep:rand",
 ]
 
 [package.metadata.cargo-all-features]

@@ -11,6 +11,7 @@ async fn main() {
     use start_axum::app::*;
     use start_axum::fileserv::file_and_error_handler;
     use std::sync::Arc;
+    use tokio::sync::mpsc;
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 
@@ -24,15 +25,18 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(|cx| view! { cx, <App/> }).await;
 
-    // TODO: run the loop for matching
+    let (ws_tx, ws_rx) = mpsc::unbounded_channel();
+    tokio::spawn(start_axum::handlers::lobby_loop(ws_rx));
 
     // build our application with a route
+    // NOTE: leptos doesn't support axum::State yet
     let app = Router::new()
         .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
         .route("/connect", get(start_axum::handlers::connect))
         .leptos_routes(leptos_options.clone(), routes, |cx| view! { cx, <App/> })
         .fallback(file_and_error_handler)
-        .layer(Extension(Arc::new(leptos_options)));
+        .layer(Extension(Arc::new(leptos_options)))
+        .layer(Extension(ws_tx));
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
