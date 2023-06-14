@@ -85,7 +85,7 @@ where
 {
     pub fn matches_target(&self, target: &Target) -> bool {
         for (board_row, target_row) in self.tiles[1..=3].iter().zip(target) {
-            for (tile, target_color) in board_row.iter().zip(target_row) {
+            for (tile, target_color) in board_row[1..=3].iter().zip(target_row) {
                 if !tile
                     .map(|tile| tile.into() == *target_color)
                     .unwrap_or(false)
