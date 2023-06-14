@@ -2,3 +2,82 @@ body {
 	font-family: sans-serif;
 	text-align: center;
 }
+
+.background {
+    outline: 1px black solid;
+    height: 600px;
+    width: 500px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.target {
+    outline: 1px black solid;
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    transform: translate(50px, 30px);
+
+    .tile {
+        outline: 1px black solid;
+        height: 30px;
+        width: 30px;
+        position: absolute;
+        transform: translate(calc(var(--row) * 30px), calc(var(--col) * 30px))
+    }
+}
+
+.board {
+    outline: 1px black solid;
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    transform: translate(50px, 150px);
+    background-color: grey;
+
+    .tile {
+        outline: 1px black solid;
+        height: 80px;
+        width: 80px;
+        position: absolute;
+        transform: translate(calc(var(--row) * 80px), calc(var(--col) * 80px))
+    }
+}
+
+.opponent-board {
+    outline: 1px black solid;
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    transform: translate(360px, 30px);
+    background-color: grey;
+
+    .tile {
+        outline: 1px black solid;
+        height: 18px;
+        width: 18px;
+        position: absolute;
+        transform: translate(calc(var(--row) * 18px), calc(var(--col) * 18px))
+    }
+}
+
+.blue {
+    background-color: blue;
+}
+.green {
+    background-color: green;
+}
+.white {
+    background-color: white;
+}
+.yellow {
+    background-color: yellow;
+}
+.orange {
+    background-color: orange;
+}
+.red {
+    background-color: red;
+}

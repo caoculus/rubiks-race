@@ -19,7 +19,7 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/start-axum.css"/>
 
         // sets the document title
-        <Title text="Welcome to Leptos"/>
+        <Title text="Rubik's Race"/>
 
         // content for this welcome page
         <Router>
@@ -46,116 +46,211 @@ fn Game(cx: Scope) -> impl IntoView {
         ConnectionError,
     }
 
-    // TODO: test without the websocket
+    // // TODO: test without the websocket
+    // // strip out all of the websocket logic, and focus on getting the styling correct
+
+    // cfg_if!(
+    //     if #[cfg(not(feature = "ssr"))] {
+    //         use crate::types::{ClientMessage, ServerMessage};
+    //         use futures::{SinkExt, StreamExt};
+    //         use gloo_net::websocket::{futures::WebSocket, Message};
+    //         use tokio::sync::mpsc;
+
+    //         impl State {
+    //             fn is_end(&self) -> bool {
+    //                 matches!(
+    //                     self,
+    //                     State::GameEnd { .. } | State::OpponentLeft | State::ConnectionError
+    //                 )
+    //             }
+    //         }
+
+    //         let (state, set_state) = create_signal(cx, State::WaitingForOpponent);
+    //         let (target, set_target) = create_signal(cx, None::<[[Color; 3]; 3]>);
+    //         let (board, set_board) = create_signal(cx, None::<Board<Tile>>);
+    //         let (opponent_board, set_opponent_board) = create_signal(cx, None::<Board<Tile>>);
+
+    //         let ws = WebSocket::open("ws://localhost:3000/connect").expect("could not connect");
+    //         let (mut tx, mut rx) = futures::StreamExt::split(ws);
+    //         let (msg_tx, mut msg_rx) = mpsc::unbounded_channel::<ClientMessage>();
+
+    //         // this wrapping is needed since msg_tx is not Copy
+    //         let msg_tx = store_value(cx, msg_tx);
+
+    //         // websocket send loop
+    //         // NOTE: this loop basically never ends... is this a problem?
+    //         spawn_local(async move {
+    //             while let Some(msg) = msg_rx.recv().await {
+    //                 let msg = Message::Bytes(bincode::serialize(&msg).expect("failed to serialize"));
+    //                 if let Err(e) = tx.send(msg).await {
+    //                     log!("Failed to send message: {e}");
+    //                     set_state(State::ConnectionError);
+    //                 }
+    //             }
+    //         });
+
+    //         let handle_server_message = move |msg: ServerMessage| {
+    //             match msg {
+    //                 ServerMessage::GameStart(start) => {
+    //                     if state.get_untracked() != State::WaitingForOpponent {
+    //                         log!("Got game start but not waiting for opponent");
+    //                         return;
+    //                     }
+
+    //                     set_target(Some(start.target));
+    //                     set_board(Some(Board::new(start.board)));
+    //                     set_opponent_board(Some(Board::new(start.opponent_board)));
+    //                     set_state(State::Playing);
+
+    //                     // i guess the assumption is that the initial configuration will never be a winning one?
+    //                 }
+    //                 ServerMessage::OpponentLeft => {
+    //                     if !state.get_untracked().is_end() {
+    //                         set_state(State::OpponentLeft);
+    //                     }
+    //                 }
+    //                 ServerMessage::OpponentClick { pos } => {
+    //                     if state.get_untracked() != State::Playing {
+    //                         log!("Got opponent click but not playing");
+    //                         return;
+    //                     }
+
+    //                     set_opponent_board.update(|board| {
+    //                         board
+    //                             .as_mut()
+    //                             .expect("playing but no board")
+    //                             .click_tile(pos);
+    //                     });
+    //                 }
+    //                 ServerMessage::GameEnd { is_win } => {
+    //                     if state.get_untracked() == State::Playing {
+    //                         set_state(State::GameEnd { is_win });
+    //                     } else {
+    //                         log!("Got game end but not playing");
+    //                     }
+    //                 }
+    //             }
+    //         };
+
+    //         // websocket receive loop
+    //         spawn_local(async move {
+    //             // weird false positive
+    //             #[allow(clippy::never_loop)]
+    //             while let Some(msg) = rx.next().await {
+    //                 if state.get_untracked().is_end() {
+    //                     break;
+    //                 }
+
+    //                 let msg = 'msg: {
+    //                     match msg {
+    //                         Ok(Message::Bytes(msg)) => break 'msg msg,
+    //                         Ok(msg) => log!("Unexpected message: {msg:?}"),
+    //                         Err(e) => log!("Receive error: {e}"),
+    //                     };
+    //                     set_state(State::ConnectionError);
+    //                     return;
+    //                 };
+    //                 let msg: ServerMessage = bincode::deserialize(&msg).expect("failed to deserialize");
+    //                 handle_server_message(msg);
+    //             }
+    //         });
+
+    //         let handle_click = move |pos: (usize, usize)| {
+    //             if state() != State::Playing {
+    //                 return;
+    //             }
+    //             set_board.update(|board| {
+    //                 let board = board.as_mut().expect("playing but no board");
+    //                 let updated = board.click_tile(pos);
+    //                 if !updated {
+    //                     return;
+    //                 }
+    //                 _ = msg_tx.with_value(|msg_tx| msg_tx.send(ClientMessage::Click { pos }));
+    //                 let is_game_over = target.with(|target| board.matches_target(target.as_ref().expect("playing but no target")));
+
+    //                 if is_game_over {
+    //                     set_state(State::WaitGameEnd);
+    //                 }
+    //             })
+    //         };
+    //     } else {
+    //         let (state, _) = create_signal(cx, State::WaitingForOpponent);
+    //         let (target, _) = create_signal(cx, None::<[[Color; 3]; 3]>);
+    //         let (board, _) = create_signal(cx, None::<Board<Tile>>);
+    //         let (opponent_board, _) = create_signal(cx, None::<Board<Tile>>);
+
+    //         let handle_click = |_| {};
+    //     }
+    // );
 
     cfg_if!(
         if #[cfg(not(feature = "ssr"))] {
-            use crate::types::{ClientMessage, ServerMessage};
-            use futures::{SinkExt, StreamExt};
-            use gloo_net::websocket::{futures::WebSocket, Message};
-            use tokio::sync::mpsc;
+            use rand::{seq::SliceRandom, Rng};
+            use strum::EnumCount;
+            use crate::types::Target;
 
-            impl State {
-                fn is_end(&self) -> bool {
-                    matches!(
-                        self,
-                        State::GameEnd { .. } | State::OpponentLeft | State::ConnectionError
-                    )
+            fn generate_target() -> Target {
+                let mut target: Target = Default::default();
+
+                'retry: loop {
+                    let mut counts = [0; Color::COUNT];
+
+                    for row in &mut target {
+                        for slot in row {
+                            let idx = rand::thread_rng().gen_range(0..Color::COUNT);
+                            let count = &mut counts[idx];
+
+                            // too many of same color
+                            *count += 1;
+                            if *count > 4 {
+                                continue 'retry;
+                            }
+
+                            *slot = idx.into();
+                        }
+                    }
+
+                    break;
+                }
+
+                target
+            }
+
+            fn generate_board() -> Board<Tile> {
+                type BoardTiles = [[Option<Tile>; 5]; 5];
+
+                let mut colors: [Color; 24] = std::array::from_fn(|i| (i / 4).into());
+                colors.shuffle(&mut rand::thread_rng());
+
+                let mut colors = colors.into_iter().enumerate();
+                let mut tiles = BoardTiles::default();
+
+                for (i, row) in tiles.iter_mut().enumerate() {
+                    for (j, slot) in row.iter_mut().enumerate() {
+                        // we will always leave the center tile empty
+                        if i == 2 && j == 2 {
+                            continue;
+                        }
+
+                        let (idx, color) = colors.next().unwrap();
+                        *slot = Some(Tile { idx, color });
+                    }
+                }
+
+                Board {
+                    tiles,
+                    hole: (2, 2),
                 }
             }
 
-            let (state, set_state) = create_signal(cx, State::WaitingForOpponent);
-            let (target, set_target) = create_signal(cx, None::<[[Color; 3]; 3]>);
-            let (board, set_board) = create_signal(cx, None::<Board<Tile>>);
-            let (opponent_board, set_opponent_board) = create_signal(cx, None::<Board<Tile>>);
-
-            let ws = WebSocket::open("ws://localhost:3000/connect").expect("could not connect");
-            let (mut tx, mut rx) = futures::StreamExt::split(ws);
-            let (msg_tx, mut msg_rx) = mpsc::unbounded_channel::<ClientMessage>();
-
-            // this wrapping is needed since msg_tx is not Copy
-            let msg_tx = store_value(cx, msg_tx);
-
-            // websocket send loop
-            spawn_local(async move {
-                while let Some(msg) = msg_rx.recv().await {
-                    if state.get_untracked().is_end() {
-                        break;
-                    }
-
-                    let msg = Message::Bytes(bincode::serialize(&msg).expect("failed to serialize"));
-                    if let Err(e) = tx.send(msg).await {
-                        log!("Failed to send message: {e}");
-                        set_state(State::ConnectionError);
-                    }
-                }
-            });
-
-            let handle_server_message = move |msg: ServerMessage| {
-                match msg {
-                    ServerMessage::GameStart(start) => {
-                        if state.get_untracked() != State::WaitingForOpponent {
-                            log!("Got game start but not waiting for opponent");
-                            return;
-                        }
-
-                        set_target(Some(start.target));
-                        set_board(Some(Board::new(start.board)));
-                        set_opponent_board(Some(Board::new(start.opponent_board)));
-                        set_state(State::Playing);
-
-                        // i guess the assumption is that the initial configuration will never be a winning one?
-                    }
-                    ServerMessage::OpponentLeft => {
-                        if matches!(state.get_untracked(), State::WaitingForOpponent | State::Playing) {
-                            set_state(State::OpponentLeft);
-                        }
-                    }
-                    ServerMessage::OpponentClick { pos } => {
-                        if state.get_untracked() != State::Playing {
-                            log!("Got opponent click but not playing");
-                            return;
-                        }
-
-                        set_opponent_board.update(|board| {
-                            board
-                                .as_mut()
-                                .expect("playing but no board")
-                                .click_tile(pos);
-                        });
-                    }
-                    ServerMessage::GameEnd { is_win } => {
-                        if state.get_untracked() == State::Playing {
-                            set_state(State::GameEnd { is_win });
-                        } else {
-                            log!("Got game end but not playing");
-                        }
-                    }
-                }
-            };
-
-            // websocket receive loop
-            spawn_local(async move {
-                // weird false positive
-                #[allow(clippy::never_loop)]
-                while let Some(msg) = rx.next().await {
-                    if state.get_untracked().is_end() {
-                        break;
-                    }
-
-                    let msg = 'msg: {
-                        match msg {
-                            Ok(Message::Bytes(msg)) => break 'msg msg,
-                            Ok(msg) => log!("Unexpected message: {msg:?}"),
-                            Err(e) => log!("Receive error: {e}"),
-                        };
-                        set_state(State::ConnectionError);
-                        return;
-                    };
-                    let msg: ServerMessage = bincode::deserialize(&msg).expect("failed to deserialize");
-                    handle_server_message(msg);
-                }
-            });
+            let (state, set_state) = create_signal(cx, State::Playing);
+            let (target, _) = create_signal(cx, Some(generate_target()));
+            let (board, set_board) = create_signal(cx, Some(generate_board()));
+            let (opponent_board, _) = create_signal(cx, Some(generate_board()));
+            // let (state, set_state) = create_signal(cx, State::WaitingForOpponent);
+            // let (target, _) = create_signal(cx, None::<[[Color; 3]; 3]>);
+            // let (board, set_board) = create_signal(cx, None::<Board<Tile>>);
+            // let (opponent_board, _) = create_signal(cx, None::<Board<Tile>>);
 
             let handle_click = move |pos: (usize, usize)| {
                 if state() != State::Playing {
@@ -167,14 +262,17 @@ fn Game(cx: Scope) -> impl IntoView {
                     if !updated {
                         return;
                     }
-                    _ = msg_tx.with_value(|msg_tx| msg_tx.send(ClientMessage::Click { pos }));
-                    let is_game_over = target.with(|target| board.matches_target(target.as_ref().expect("playing but no target")));
+
+                    let is_game_over = target.with(|target| {
+                        board.matches_target(target.as_ref().expect("playing but no target"))
+                    });
 
                     if is_game_over {
-                        set_state(State::WaitGameEnd);
+                        set_state(State::GameEnd { is_win: true });
                     }
                 })
             };
+
         } else {
             let (state, _) = create_signal(cx, State::WaitingForOpponent);
             let (target, _) = create_signal(cx, None::<[[Color; 3]; 3]>);
@@ -200,7 +298,7 @@ fn Game(cx: Scope) -> impl IntoView {
                 key=|(i, j, _)| i * 3 + j
                 view=move |cx, (i, j, color)| {
                     view! { cx,
-                        <div class={format!("target-{i}-{j} {}", color_string(color))} />
+                        <div class={format!("tile {color}", color = color_string(color))} style={format!("--row: {i}; --col: {j};")} />
                     }
                 }
             />
@@ -223,7 +321,7 @@ fn Game(cx: Scope) -> impl IntoView {
                 key=|(_, _, tile)| tile.idx
                 view=move |cx, (i, j, tile)| {
                     view! { cx,
-                        <div class={format!("board-{i}-{j} {}", color_string(tile.color))} on:click={move |_| {handle_click((i, j))}}/>
+                        <div class={format!("tile {color}", color = color_string(tile.color))} style={format!("--row: {i}; --col: {j};")} on:click={move |_| {handle_click((i, j))}} />
                     }
                 }
             />
@@ -246,7 +344,7 @@ fn Game(cx: Scope) -> impl IntoView {
                 key=|(_, _, tile)| tile.idx
                 view=move |cx, (i, j, tile)| {
                     view! { cx,
-                        <div class={format!("opponent-board-{i}-{j} {}", color_string(tile.color))} />
+                        <div class={format!("tile {color}", color = color_string(tile.color))} style={format!("--row: {i}; --col: {j};")} />
                     }
                 }
             />
@@ -275,14 +373,13 @@ fn Game(cx: Scope) -> impl IntoView {
     view! { cx,
         <div class="background">
             <div class="target">
-                <p>"Target"</p>
                 {target_view}
-            </div>
-            <div class="opponent_board">
-                {opponent_board_view}
             </div>
             <div class="board">
                 {board_view}
+            </div>
+            <div class="opponent-board">
+                {opponent_board_view}
             </div>
             {state_view}
         </div>
@@ -300,7 +397,7 @@ fn color_string(color: Color) -> &'static str {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 struct Tile {
     idx: usize,
     color: Color,
@@ -349,43 +446,11 @@ impl Board<Tile> {
 /// Renders the home page of your application.
 #[component]
 fn HomePage(cx: Scope) -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(cx, 0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
-
     // using Form is a workaround for a redirecting button
     view! { cx,
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        <h1>"Rubik's Race"</h1>
         <Form method="GET" action="/game">
             <button>"Play"</button>
         </Form>
     }
-
-    // #[cfg(not(feature = "ssr"))]
-    // let count = {
-    //     use futures::StreamExt;
-    //     use gloo_net::websocket::Message;
-
-    //     let ws = gloo_net::websocket::futures::WebSocket::open("ws://localhost:3000/connect")
-    //         .expect("could not connect");
-    //     create_signal_from_stream(
-    //         cx,
-    //         ws.map(|msg| match msg {
-    //             Ok(msg) => {
-    //                 let Message::Binary(s) = msg else { panic!("expected binary") };
-    //                 bincode::deserialize(&s).unwrap()
-    //             }
-    //             Err(_) => 0,
-    //         }),
-    //     )
-    // };
-
-    // #[cfg(feature = "ssr")]
-    // let (count, _) = create_signal(cx, None::<i32>);
-
-    // view! { cx,
-    //     <h1>"Welcome to Leptos!"</h1>
-    //     <h2>{move || count.get().map(|c| c.to_string()).unwrap_or("None".into())}</h2>
-    // }
 }

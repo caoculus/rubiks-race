@@ -87,20 +87,6 @@ cfg_if!(
         ) {
             type BoardTiles = [[Option<Color>; 5]; 5];
 
-            impl From<usize> for Color {
-                fn from(value: usize) -> Self {
-                    match value {
-                        0 => Color::White,
-                        1 => Color::Yellow,
-                        2 => Color::Orange,
-                        3 => Color::Red,
-                        4 => Color::Green,
-                        5 => Color::Blue,
-                        _ => panic!("out of bounds"),
-                    }
-                }
-            }
-
             fn generate_target() -> Target {
                 let mut target: Target = Default::default();
 
