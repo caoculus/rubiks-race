@@ -4,7 +4,7 @@ cfg_if!(
     if #[cfg(feature = "ssr")] {
         use crate::{
             error_template::AppError,
-            types::{Board, ClientMessage, Color, GameStart, ServerMessage, Target},
+            types::{BoardInner, BoardTiles, ClientMessage, Color, GameStart, ServerMessage, Target},
         };
         use axum::{
             extract::{
@@ -85,8 +85,6 @@ cfg_if!(
             mut event_rx: UnboundedReceiver<GameEvent>,
             mut msg_txs: [UnboundedSender<ServerMessage>; 2],
         ) {
-            type BoardTiles = [[Option<Color>; 5]; 5];
-
             fn generate_target() -> Target {
                 let mut target: Target = Default::default();
 
@@ -114,38 +112,95 @@ cfg_if!(
                 target
             }
 
-            fn generate_board() -> Board<Color> {
-                let mut colors: [Color; 24] = std::array::from_fn(|i| (i / 4).into());
-                colors.shuffle(&mut rand::thread_rng());
+            struct Board(BoardInner);
 
-                let mut colors = colors.into_iter();
-                let mut tiles = BoardTiles::default();
+            impl Board {
+                fn generate() -> Self {
+                    let mut colors: [Color; 24] = std::array::from_fn(|i| (i / 4).into());
+                    colors.shuffle(&mut rand::thread_rng());
 
-                for (i, row) in tiles.iter_mut().enumerate() {
-                    for (j, slot) in row.iter_mut().enumerate() {
-                        // we will always leave the center tile empty
-                        if i == 2 && j == 2 {
-                            continue;
+                    let mut colors = colors.into_iter();
+                    let mut tiles = BoardTiles::default();
+
+                    for (i, row) in tiles.iter_mut().enumerate() {
+                        for (j, slot) in row.iter_mut().enumerate() {
+                            // we will always leave the center tile empty
+                            if i == 2 && j == 2 {
+                                continue;
+                            }
+
+                            *slot = Some(colors.next().unwrap());
                         }
-
-                        *slot = Some(colors.next().unwrap());
                     }
+
+                    Board(BoardInner {
+                        tiles,
+                        hole: (2, 2),
+                    })
                 }
 
-                Board {
-                    tiles,
-                    hole: (2, 2),
+                fn click_tile(&mut self, pos: (usize, usize)) -> bool {
+                    // TODO: better out of bounds handling?
+                    use std::cmp::Ordering;
+
+                    let BoardInner { tiles, hole } = &mut self.0;
+                    let (row_cmp, col_cmp) = (pos.0.cmp(&hole.0), pos.1.cmp(&hole.1));
+
+                    match (row_cmp, col_cmp) {
+                        // same row
+                        (Ordering::Equal, _) => {
+                            let row = &mut tiles[pos.0];
+                            match col_cmp {
+                                Ordering::Less => {
+                                    for i in (pos.1..hole.1).rev() {
+                                        row[i + 1] = row[i];
+                                    }
+                                }
+                                Ordering::Greater => {
+                                    for i in hole.1..pos.1 {
+                                        row[i] = row[i + 1];
+                                    }
+                                }
+                                _ => return false,
+                            }
+                            row[pos.1] = None;
+                        }
+                        (_, Ordering::Equal) => {
+                            match row_cmp {
+                                Ordering::Less => {
+                                    for i in (pos.0..hole.0).rev() {
+                                        tiles[i + 1][pos.1] = tiles[i][pos.1]
+                                    }
+                                }
+                                Ordering::Greater => {
+                                    for i in hole.0..pos.0 {
+                                        tiles[i][pos.1] = tiles[i + 1][pos.1]
+                                    }
+                                }
+                                _ => return false,
+                            }
+                            tiles[pos.0][pos.1] = None;
+                        }
+                        _ => return false,
+                    }
+
+                    *hole = pos;
+                    true
+                }
+
+                fn matches_target(&self, target: &Target) -> bool {
+                    self.0.matches_target(target)
                 }
             }
 
             let target = generate_target();
-            let mut boards = [generate_board(), generate_board()];
+            let mut boards = [Board::generate(), Board::generate()];
 
             for (id, tx) in msg_txs.iter_mut().enumerate() {
                 _ = tx.send(ServerMessage::GameStart(GameStart {
                     target,
-                    board: boards[id].tiles,
-                    opponent_board: boards[1 - id].tiles,
+                    board: boards[id].0,
+                    opponent_board: boards[1 - id].0,
                 }));
             }
 

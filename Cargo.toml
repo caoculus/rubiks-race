@@ -32,11 +32,9 @@ serde = { version = "1.0.164", features = ["derive"] }
 tokio-stream = "0.1.14"
 strum = { version = "0.24.1", features = ["derive"] }
 
-# TODO: put this back!
-
-# rand = { version = "0.8.5", optional = true }
-rand = "0.8.5"
-getrandom = { version = "0.2.10", features = ["js"] }
+rand = { version = "0.8.5", optional = true }
+# rand = "0.8.5"
+# getrandom = { version = "0.2.10", features = ["js"] }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
@@ -49,7 +47,7 @@ ssr = [
     "leptos_meta/ssr", 
     "leptos_router/ssr", 
     "dep:tracing",
-    # "dep:rand",
+    "dep:rand",
 ]
 
 [package.metadata.cargo-all-features]

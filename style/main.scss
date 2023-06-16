@@ -5,63 +5,106 @@ body {
 
 .background {
     outline: 1px black solid;
-    height: 600px;
+    height: 620px;
     width: 500px;
     position: absolute;
     top: 50%;
     left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.tile {
+    transition: transform 1s;
+}
+
+.button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+.target-label {
+    position: absolute;
+    top: 15px;
+    left: 95px;
+    transform: translate(-50%, -50%);
+}
+
+.opponent-label {
+    position: absolute;
+    top: 15px;
+    left: 405px;
     transform: translate(-50%, -50%);
 }
 
 .target {
-    outline: 1px black solid;
     position: absolute;
     width: 90px;
     height: 90px;
-    transform: translate(50px, 30px);
-    background-color: grey;
+    transform: translate(50px, 50px);
+    background-color: lightgrey;
 
     .tile {
-        outline: 1px black solid;
+        box-sizing: border-box;
+        border: 2px black solid;
+        border-radius: 4px;
         height: 30px;
         width: 30px;
         position: absolute;
-        transform: translate(calc(var(--row) * 30px), calc(var(--col) * 30px))
+        transform: translate(calc(var(--row) * 30px), calc(var(--col) * 30px));
     }
 }
 
 .board {
-    outline: 1px black solid;
     position: absolute;
     width: 400px;
     height: 400px;
-    transform: translate(50px, 150px);
-    background-color: grey;
+    transform: translate(50px, 170px);
+    background-color: lightgrey;
 
     .tile {
-        outline: 1px black solid;
+        box-sizing: border-box;
+        border: 5px black solid;
+        border-radius: 10px;
         height: 80px;
         width: 80px;
         position: absolute;
-        transform: translate(calc(var(--row) * 80px), calc(var(--col) * 80px))
+        transform: translate(calc(var(--row) * 80px), calc(var(--col) * 80px));
     }
 }
 
 .opponent-board {
-    outline: 1px black solid;
     position: absolute;
     width: 90px;
     height: 90px;
-    transform: translate(360px, 30px);
-    background-color: grey;
+    transform: translate(360px, 50px);
+    background-color: lightgrey;
 
     .tile {
-        outline: 1px black solid;
+        box-sizing: border-box;
+        border: 1px black solid;
+        border-radius: 2px;
         height: 18px;
         width: 18px;
         position: absolute;
         transform: translate(calc(var(--row) * 18px), calc(var(--col) * 18px))
     }
+}
+
+.state {
+    outline: 1px black solid;
+    position: absolute;
+    background-color: white;
+    padding: 10px;
+    z-index: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .blue {
