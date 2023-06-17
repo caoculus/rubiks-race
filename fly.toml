@@ -1,0 +1,19 @@
+# fly.toml app configuration file generated for rubiks-race on 2023-06-17T10:55:10-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "rubiks-race"
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "sea"
+
+[build]
+  image = "rubiks-race:latest"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
