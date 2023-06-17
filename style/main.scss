@@ -1,6 +1,17 @@
+// @tailwind base;
+// @tailwind components;
+// @tailwind utilities;
+
 body {
 	font-family: sans-serif;
 	text-align: center;
+}
+
+.home {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .background {
@@ -10,15 +21,16 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%);
 }
 
 .tile {
-    transition: transform 1s;
+    transition: transform 0.1s;
 }
 
 .button {
-    background-color: #4CAF50; /* Green */
+    background-color: #4CAF50;
+    border-radius: 5px;
     border: none;
     color: white;
     padding: 15px 32px;
@@ -26,6 +38,12 @@ body {
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
+    margin: 10px;
+
+    &:hover {
+        background-color: #0dd415;    
+        cursor: pointer;
+    }
 }
 
 .target-label {
@@ -105,6 +123,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
 }
 
 .blue {

@@ -193,6 +193,8 @@ cfg_if!(
                 }
             }
 
+            log!("Entering game loop");
+
             let target = generate_target();
             let mut boards = [Board::generate(), Board::generate()];
 
@@ -239,6 +241,8 @@ cfg_if!(
                     }
                 }
             }
+
+            log!("Exiting game loop");
         }
 
         async fn ws_loop(
@@ -247,6 +251,7 @@ cfg_if!(
             event_tx: UnboundedSender<GameEvent>,
             mut msg_rx: UnboundedReceiver<ServerMessage>,
         ) {
+            log!("Entering ws_loop");
             loop {
                 select! {
                     msg = ws.next() => {
@@ -275,6 +280,7 @@ cfg_if!(
                 }
             }
             _ = event_tx.send(GameEvent::Disconnected { id });
+            log!("Exiting ws_loop");
         }
     }
 );
