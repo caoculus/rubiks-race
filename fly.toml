@@ -9,7 +9,7 @@ kill_timeout = 5
 primary_region = "sea"
 
 [build]
-  image = "rubiks-race:latest"
+  dockerfile = "./Dockerfile"
 
 [http_service]
   internal_port = 3000

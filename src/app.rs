@@ -81,6 +81,8 @@ fn Game(cx: Scope) -> impl IntoView {
             // store in the reactive system instead
             let _shutdown_cb = store_value(cx, shutdown_cb);
 
+            let host = window.location().host().expect("failed to get location");
+
             // we need to store the window for the reload callback
             let window = store_value(cx, window);
             let reload = move |_| { _ = window().location().reload(); };
@@ -90,7 +92,7 @@ fn Game(cx: Scope) -> impl IntoView {
             let (board, set_board) = create_signal(cx, None::<Board>);
             let (opponent_board, set_opponent_board) = create_signal(cx, None::<Board>);
 
-            let ws = WebSocket::open("ws://localhost:3000/connect").expect("could not connect");
+            let ws = WebSocket::open(&format!("wss://{host}/connect")).expect("could not connect");
             let (mut tx, mut rx) = futures::StreamExt::split(ws);
             let (msg_tx, mut msg_rx) = mpsc::unbounded_channel::<ClientMessage>();
 
@@ -383,54 +385,19 @@ impl Board {
     }
 
     fn click_pos(&mut self, pos: (usize, usize)) -> bool {
-        use std::cmp::Ordering;
+        use crate::utils::slide;
 
         let Self {
             locations,
             inner: BoardInner { tiles, hole },
         } = self;
-        let (row_cmp, col_cmp) = (pos.0.cmp(&hole.0), pos.1.cmp(&hole.1));
+        let update = |old: (usize, usize), new: (usize, usize)| {
+            locations[tiles[old.0][old.1].unwrap().idx] = new;
+            tiles[new.0][new.1] = tiles[old.0][old.1];
+        };
 
-        match (row_cmp, col_cmp) {
-            // same row
-            (Ordering::Equal, _) => {
-                let row = &mut tiles[pos.0];
-                match col_cmp {
-                    Ordering::Less => {
-                        for i in (pos.1..hole.1).rev() {
-                            locations[row[i].unwrap().idx].1 = i + 1;
-                            row[i + 1] = row[i];
-                        }
-                    }
-                    Ordering::Greater => {
-                        for i in hole.1..pos.1 {
-                            locations[row[i + 1].unwrap().idx].1 = i;
-                            row[i] = row[i + 1];
-                        }
-                    }
-                    _ => return false,
-                }
-                row[pos.1] = None;
-            }
-            (_, Ordering::Equal) => {
-                match row_cmp {
-                    Ordering::Less => {
-                        for i in (pos.0..hole.0).rev() {
-                            locations[tiles[i][pos.1].unwrap().idx].0 = i + 1;
-                            tiles[i + 1][pos.1] = tiles[i][pos.1];
-                        }
-                    }
-                    Ordering::Greater => {
-                        for i in hole.0..pos.0 {
-                            locations[tiles[i + 1][pos.1].unwrap().idx].0 = i;
-                            tiles[i][pos.1] = tiles[i + 1][pos.1]
-                        }
-                    }
-                    _ => return false,
-                }
-                tiles[pos.0][pos.1] = None;
-            }
-            _ => return false,
+        if !slide(pos, *hole, update) {
+            return false;
         }
 
         *hole = pos;

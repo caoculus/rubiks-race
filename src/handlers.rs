@@ -41,6 +41,8 @@ cfg_if!(
             let mut msg_txs: [Option<UnboundedSender<ServerMessage>>; 2] = std::array::from_fn(|_| None);
             let mut free_ids = vec![0, 1];
 
+            log!("Entering lobby_loop");
+
             loop {
                 select! {
                     event = event_rx.recv() => {
@@ -54,6 +56,7 @@ cfg_if!(
                                 id
                             }
                         };
+                        log!("Freeing id {id}");
                         msg_txs[id] = None;
                         free_ids.push(id);
                     }
@@ -61,6 +64,8 @@ cfg_if!(
                         let Some(ws) = ws else { log!("ws_rx stopped"); break; };
                         let id = free_ids.pop().expect("no ids left");
                         let (msg_tx, msg_rx) = mpsc::unbounded_channel();
+
+                        log!("Assigning id {id}");
 
                         tokio::spawn(ws_loop(id, ws, event_tx.clone(), msg_rx));
                         msg_txs[id] = Some(msg_tx);
@@ -75,6 +80,7 @@ cfg_if!(
                         free_ids = vec![0, 1];
                         (event_tx, event_rx) = mpsc::unbounded_channel();
 
+                        log!("Starting new game");
                         tokio::spawn(game_loop(old_event_rx, full_msg_txs));
                     }
                 }
@@ -140,48 +146,15 @@ cfg_if!(
                 }
 
                 fn click_tile(&mut self, pos: (usize, usize)) -> bool {
-                    // TODO: better out of bounds handling?
-                    use std::cmp::Ordering;
+                    use crate::utils::slide;
 
                     let BoardInner { tiles, hole } = &mut self.0;
-                    let (row_cmp, col_cmp) = (pos.0.cmp(&hole.0), pos.1.cmp(&hole.1));
+                    let update = |old: (usize, usize), new: (usize, usize)| {
+                        tiles[new.0][new.1] = tiles[old.0][old.1];
+                    };
 
-                    match (row_cmp, col_cmp) {
-                        // same row
-                        (Ordering::Equal, _) => {
-                            let row = &mut tiles[pos.0];
-                            match col_cmp {
-                                Ordering::Less => {
-                                    for i in (pos.1..hole.1).rev() {
-                                        row[i + 1] = row[i];
-                                    }
-                                }
-                                Ordering::Greater => {
-                                    for i in hole.1..pos.1 {
-                                        row[i] = row[i + 1];
-                                    }
-                                }
-                                _ => return false,
-                            }
-                            row[pos.1] = None;
-                        }
-                        (_, Ordering::Equal) => {
-                            match row_cmp {
-                                Ordering::Less => {
-                                    for i in (pos.0..hole.0).rev() {
-                                        tiles[i + 1][pos.1] = tiles[i][pos.1]
-                                    }
-                                }
-                                Ordering::Greater => {
-                                    for i in hole.0..pos.0 {
-                                        tiles[i][pos.1] = tiles[i + 1][pos.1]
-                                    }
-                                }
-                                _ => return false,
-                            }
-                            tiles[pos.0][pos.1] = None;
-                        }
-                        _ => return false,
+                    if !slide(pos, *hole, update) {
+                        return false;
                     }
 
                     *hole = pos;
