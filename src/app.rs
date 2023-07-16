@@ -243,7 +243,7 @@ fn Game(cx: Scope) -> impl IntoView {
             let (target, _) = create_signal(cx, None::<[[Color; 3]; 3]>);
             let (board, _) = create_signal(cx, None::<Board>);
             let (opponent_board, _) = create_signal(cx, None::<Board>);
-            let (dimensions, _) = create_signal(cx, (1000, 1000));
+            let (dimensions, _) = create_signal(cx, (0, 0));
 
             let handle_click = |_| {};
             let reload = |_| {};
