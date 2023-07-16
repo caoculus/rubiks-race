@@ -21,6 +21,7 @@ pub struct GameStart {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum ClientMessage {
     Click { pos: (usize, usize) },
+    Ping,
 }
 
 #[derive(

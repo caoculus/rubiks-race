@@ -48,6 +48,10 @@ cfg_if!(
                     event = event_rx.recv() => {
                         let event = event.expect("event_rx stopped, but event_tx shouldn't be dropped");
                         let id = match event {
+                            GameEvent::Message { id, msg: ClientMessage::Ping } => {
+                                log!("Received ping from {id}");
+                                continue;
+                            }
                             GameEvent::Message { id, msg: _ } => {
                                 log!("Unexpected message from id {id}");
                                 id
@@ -206,6 +210,9 @@ cfg_if!(
                         _ = msg_txs[id].send(ServerMessage::GameEnd { is_win: true });
                         _ = msg_txs[other_id].send(ServerMessage::GameEnd { is_win: false });
                         break;
+                    }
+                    GameEvent::Message { id, msg: ClientMessage::Ping } => {
+                        log!("Received ping from {id}")
                     }
                     GameEvent::Disconnected { id } => {
                         let other_id = 1 - id;

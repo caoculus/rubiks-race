@@ -3,8 +3,8 @@
 // @tailwind utilities;
 
 body {
-	font-family: sans-serif;
-	text-align: center;
+    font-family: sans-serif;
+    text-align: center;
 }
 
 .home {
@@ -21,7 +21,8 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%)
+        scale(calc(min(var(--screen-x) / 600, var(--screen-y) / 720)));
 }
 
 .tile {
@@ -29,7 +30,7 @@ body {
 }
 
 .button {
-    background-color: #4CAF50;
+    background-color: #4caf50;
     border-radius: 5px;
     border: none;
     color: white;
@@ -41,7 +42,7 @@ body {
     margin: 10px;
 
     &:hover {
-        background-color: #0dd415;    
+        background-color: #0dd415;
         cursor: pointer;
     }
 }
@@ -110,7 +111,7 @@ body {
         height: 18px;
         width: 18px;
         position: absolute;
-        transform: translate(calc(var(--row) * 18px), calc(var(--col) * 18px))
+        transform: translate(calc(var(--row) * 18px), calc(var(--col) * 18px));
     }
 }
 

@@ -65,6 +65,14 @@ fn Game(cx: Scope) -> impl IntoView {
                 }
             }
 
+            fn window_dimensions() -> (i32, i32) {
+                let window = web_sys::window().expect("should have a window");
+                let document = window.document().expect("no document");
+                let root = document.document_element().expect("no root");
+
+                (root.client_width(), root.client_height())
+            }
+
             let (shutdown_tx, shutdown_rx) = broadcast::channel::<Void>(1);
             let mut send_shutdown = shutdown_rx;
             let mut recv_shutdown = shutdown_tx.subscribe();
@@ -83,14 +91,22 @@ fn Game(cx: Scope) -> impl IntoView {
 
             let host = window.location().host().expect("failed to get location");
 
-            // we need to store the window for the reload callback
-            let window = store_value(cx, window);
-            let reload = move |_| { _ = window().location().reload(); };
-
             let (state, set_state) = create_signal(cx, State::WaitingForOpponent);
             let (target, set_target) = create_signal(cx, None::<[[Color; 3]; 3]>);
             let (board, set_board) = create_signal(cx, None::<Board>);
             let (opponent_board, set_opponent_board) = create_signal(cx, None::<Board>);
+            let (dimensions, set_dimensions) = create_signal(cx, window_dimensions());
+
+            let resize_cb = Closure::<dyn Fn()>::new(move || {
+                set_dimensions(window_dimensions());
+            });
+            window.set_onresize(Some(resize_cb.as_ref().unchecked_ref()));
+            let _resize_cb = store_value(cx, resize_cb);
+
+            // we need to store the window for the reload callback
+            let window = store_value(cx, window);
+            let reload = move |_| { _ = window().location().reload(); };
+
 
             let ws = WebSocket::open(&format!("wss://{host}/connect")).expect("could not connect");
             let (mut tx, mut rx) = futures::StreamExt::split(ws);
@@ -101,17 +117,29 @@ fn Game(cx: Scope) -> impl IntoView {
 
             // websocket send loop
             spawn_local(async move {
+                use futures::stream::SplitSink;
+
                 log!("Entering send loop");
+
+                let mut ping_interval = wasmtimer::tokio::interval(core::time::Duration::from_secs(50));
+
+                async fn send_msg(msg: ClientMessage, tx: &mut SplitSink<WebSocket, Message>, set_state: WriteSignal<State>, do_shutdown: impl Fn()) {
+                    let msg = Message::Bytes(bincode::serialize(&msg).expect("failed to serialize"));
+                    if let Err(e) = tx.send(msg).await {
+                        log!("Failed to send message: {e}");
+                        set_state(State::ConnectionError);
+                        do_shutdown();
+                    }
+                }
+
                 loop {
                     select! {
                         msg = msg_rx.recv() => {
                             let Some(msg) = msg else { break; };
-                            let msg = Message::Bytes(bincode::serialize(&msg).expect("failed to serialize"));
-                            if let Err(e) = tx.send(msg).await {
-                                log!("Failed to send message: {e}");
-                                set_state(State::ConnectionError);
-                                do_shutdown();
-                            }
+                            send_msg(msg, &mut tx, set_state, do_shutdown).await;
+                        }
+                        _ = ping_interval.tick() => {
+                            send_msg(ClientMessage::Ping, &mut tx, set_state, do_shutdown).await;
                         }
                         _ = send_shutdown.recv() => {
                             break;
@@ -215,6 +243,7 @@ fn Game(cx: Scope) -> impl IntoView {
             let (target, _) = create_signal(cx, None::<[[Color; 3]; 3]>);
             let (board, _) = create_signal(cx, None::<Board>);
             let (opponent_board, _) = create_signal(cx, None::<Board>);
+            let (dimensions, _) = create_signal(cx, (1000, 1000));
 
             let handle_click = |_| {};
             let reload = |_| {};
@@ -258,7 +287,11 @@ fn Game(cx: Scope) -> impl IntoView {
         })
     }
 
-    let board_view = move || {
+    fn make_board_view(
+        cx: Scope,
+        board: ReadSignal<Option<Board>>,
+        handle_click: impl Fn(usize) + 'static + Copy,
+    ) -> impl IntoView {
         view! { cx,
             <For
                 each=move || board_iter(board)
@@ -275,26 +308,10 @@ fn Game(cx: Scope) -> impl IntoView {
                 }
             />
         }
-    };
+    }
 
-    let opponent_board_view = move || {
-        view! { cx,
-            <For
-                each=move || board_iter(opponent_board)
-                key=|&(idx, _)| idx
-                view=move |cx, (_, data)| {
-                    let pos = move || data().pos;
-                    let color = move || data().tile.color;
-                    let i = move || pos().0;
-                    let j = move || pos().1;
-
-                    view! { cx,
-                        <div class={move || format!("tile {color}", color = color_string(color()))} style={move || format!("--row: {i}; --col: {j};", i = i(), j = j())} />
-                    }
-                }
-            />
-        }
-    };
+    let board_view = make_board_view(cx, board, handle_click);
+    let opponent_board_view = make_board_view(cx, opponent_board, |_| {});
 
     let state_view = move || {
         let message = match state() {
@@ -321,7 +338,7 @@ fn Game(cx: Scope) -> impl IntoView {
     };
 
     view! { cx,
-        <div class="background">
+        <div class="background" style={move || format!("--screen-x: {x}; --screen-y: {y}", x = dimensions().0, y = dimensions().1)}>
             <p class="target-label">"Target"</p>
             <div class="target">
                 {target_view}

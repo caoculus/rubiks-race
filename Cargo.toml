@@ -33,7 +33,8 @@ tokio-stream = "0.1.14"
 strum = { version = "0.24.1", features = ["derive"] }
 
 rand = { version = "0.8.5", optional = true }
-web-sys = { version = "0.3.64", features = ["Window", "Location"] }
+web-sys = { version = "0.3.64", features = ["Window", "Location", "Screen", "Document", "Element"] }
+wasmtimer = "0.2.0"
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
