@@ -7,13 +7,11 @@ use leptos_router::*;
 use crate::types::{BoardInner, BoardTiles, Color, Target};
 
 #[component]
-pub fn App(cx: Scope) -> impl IntoView {
+pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
-    provide_meta_context(cx);
+    provide_meta_context();
 
     view! {
-        cx,
-
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/start-axum.css"/>
@@ -25,8 +23,8 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Router>
             <main>
                 <Routes>
-                    <Route path="" view=|cx| view! { cx, <HomePage/> }/>
-                    <Route path="/game" view=|cx| view! { cx, <Game/> }/>
+                    <Route path="" view=|| view! { <HomePage/> }/>
+                    <Route path="/game" view=|| view! { <Game/> }/>
                 </Routes>
             </main>
         </Router>
@@ -34,7 +32,7 @@ pub fn App(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn Game(cx: Scope) -> impl IntoView {
+fn Game() -> impl IntoView {
     #[allow(unused)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum State {
@@ -77,7 +75,7 @@ fn Game(cx: Scope) -> impl IntoView {
             let mut send_shutdown = shutdown_rx;
             let mut recv_shutdown = shutdown_tx.subscribe();
 
-            let shutdown_tx = store_value(cx, Some(shutdown_tx));
+            let shutdown_tx = store_value(Some(shutdown_tx));
             let do_shutdown = move || shutdown_tx.set_value(None);
 
             let window = web_sys::window().expect("should have a window");
@@ -87,24 +85,24 @@ fn Game(cx: Scope) -> impl IntoView {
             window.set_onbeforeunload(Some(shutdown_cb.as_ref().unchecked_ref()));
             // forgetting the callback leaks memory
             // store in the reactive system instead
-            let _shutdown_cb = store_value(cx, shutdown_cb);
+            let _shutdown_cb = store_value(shutdown_cb);
 
             let host = window.location().host().expect("failed to get location");
 
-            let (state, set_state) = create_signal(cx, State::WaitingForOpponent);
-            let (target, set_target) = create_signal(cx, None::<[[Color; 3]; 3]>);
-            let (board, set_board) = create_signal(cx, None::<Board>);
-            let (opponent_board, set_opponent_board) = create_signal(cx, None::<Board>);
-            let (dimensions, set_dimensions) = create_signal(cx, window_dimensions());
+            let (state, set_state) = create_signal(State::WaitingForOpponent);
+            let (target, set_target) = create_signal(None::<[[Color; 3]; 3]>);
+            let (board, set_board) = create_signal(None::<Board>);
+            let (opponent_board, set_opponent_board) = create_signal(None::<Board>);
+            let (dimensions, set_dimensions) = create_signal(window_dimensions());
 
             let resize_cb = Closure::<dyn Fn()>::new(move || {
                 set_dimensions(window_dimensions());
             });
             window.set_onresize(Some(resize_cb.as_ref().unchecked_ref()));
-            let _resize_cb = store_value(cx, resize_cb);
+            let _resize_cb = store_value(resize_cb);
 
             // we need to store the window for the reload callback
-            let window = store_value(cx, window);
+            let window = store_value(window);
             let reload = move |_| { _ = window().location().reload(); };
 
 
@@ -113,7 +111,7 @@ fn Game(cx: Scope) -> impl IntoView {
             let (msg_tx, mut msg_rx) = mpsc::unbounded_channel::<ClientMessage>();
 
             // this wrapping is needed since msg_tx is not Copy
-            let msg_tx = store_value(cx, msg_tx);
+            let msg_tx = store_value(msg_tx);
 
             // websocket send loop
             spawn_local(async move {
@@ -239,11 +237,11 @@ fn Game(cx: Scope) -> impl IntoView {
                 })
             };
         } else {
-            let (state, _) = create_signal(cx, State::WaitingForOpponent);
-            let (target, _) = create_signal(cx, None::<[[Color; 3]; 3]>);
-            let (board, _) = create_signal(cx, None::<Board>);
-            let (opponent_board, _) = create_signal(cx, None::<Board>);
-            let (dimensions, _) = create_signal(cx, (0, 0));
+            let (state, _) = create_signal(State::WaitingForOpponent);
+            let (target, _) = create_signal(None::<[[Color; 3]; 3]>);
+            let (board, _) = create_signal(None::<Board>);
+            let (opponent_board, _) = create_signal(None::<Board>);
+            let (dimensions, _) = create_signal((0, 0));
 
             let handle_click = |_| {};
             let reload = |_| {};
@@ -251,19 +249,19 @@ fn Game(cx: Scope) -> impl IntoView {
     );
 
     let target_view = move || {
-        target()
+        target.get()
             .map(|target| {
                 target.into_iter().enumerate().flat_map(|(i, row)| {
                     row.into_iter()
                         .enumerate()
-                        .map(move |(j, color)| view! { cx,
+                        .map(move |(j, color)| view! {
                             <div class={format!("tile {color}", color = color_string(color))} style={format!("--row: {i}; --col: {j};")} />
                         })
                 })
             })
             .into_iter()
             .flatten()
-            .collect_view(cx)
+            .collect_view()
     };
 
     fn board_iter(
@@ -288,21 +286,20 @@ fn Game(cx: Scope) -> impl IntoView {
     }
 
     fn make_board_view(
-        cx: Scope,
         board: ReadSignal<Option<Board>>,
         handle_click: impl Fn(usize) + 'static + Copy,
     ) -> impl IntoView {
-        view! { cx,
+        view! {
             <For
                 each=move || board_iter(board)
                 key=|&(idx, _)| idx
-                view=move |cx, (idx, data)| {
+                view=move |(idx, data)| {
                     let pos = move || data().pos;
                     let color = move || data().tile.color;
                     let i = move || pos().0;
                     let j = move || pos().1;
 
-                    view! { cx,
+                    view! {
                         <div class={move || format!("tile {color}", color = color_string(color()))} style={move || format!("--row: {i}; --col: {j};", i = i(), j = j())} on:click={move |_| handle_click(idx)} />
                     }
                 }
@@ -310,11 +307,11 @@ fn Game(cx: Scope) -> impl IntoView {
         }
     }
 
-    let board_view = make_board_view(cx, board, handle_click);
-    let opponent_board_view = make_board_view(cx, opponent_board, |_| {});
+    let board_view = make_board_view(board, handle_click);
+    let opponent_board_view = make_board_view(opponent_board, |_| {});
 
     let state_view = move || {
-        let message = match state() {
+        let message = match state.get() {
             State::WaitingForOpponent => "Waiting for opponent",
             State::GameEnd { is_win } => {
                 if is_win {
@@ -327,9 +324,9 @@ fn Game(cx: Scope) -> impl IntoView {
             State::ConnectionError => "Server connection error",
             _ => return None,
         };
-        let button = matches!(state(), State::GameEnd { .. } | State::OpponentLeft)
-            .then(|| view! { cx, <button class="button" on:click=reload>"Play again"</button> });
-        Some(view! { cx,
+        let button = matches!(state.get(), State::GameEnd { .. } | State::OpponentLeft)
+            .then(|| view! { <button class="button" on:click=reload>"Play again"</button> });
+        Some(view! {
             <div class="state">
                 <span>{message}</span>
                 {button}
@@ -337,8 +334,8 @@ fn Game(cx: Scope) -> impl IntoView {
         })
     };
 
-    view! { cx,
-        <div class="background" style={move || format!("--screen-x: {x}; --screen-y: {y}", x = dimensions().0, y = dimensions().1)}>
+    view! {
+        <div class="background" style={move || format!("--screen-x: {x}; --screen-y: {y}", x = dimensions.get().0, y = dimensions.get().1)}>
             <p class="target-label">"Target"</p>
             <div class="target">
                 {target_view}
@@ -442,9 +439,9 @@ impl From<Tile> for Color {
 
 /// Renders the home page of your application.
 #[component]
-fn HomePage(cx: Scope) -> impl IntoView {
+fn HomePage() -> impl IntoView {
     // using Form is a workaround for a redirecting button
-    view! { cx,
+    view! {
         <div class="home">
             <h1>"Rubik's Race"</h1>
             <Form method="GET" action="/game">

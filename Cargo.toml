@@ -11,10 +11,10 @@ axum = { version = "0.6.4", features = ["ws"], optional = true }
 console_error_panic_hook = "0.1"
 console_log = "1"
 cfg-if = "1"
-leptos = { version = "0.3", default-features = false, features = ["serde"] }
-leptos_axum = { version = "0.3", optional = true }
-leptos_meta = { version = "0.3", default-features = false }
-leptos_router = { version = "0.3", default-features = false }
+leptos = { version = "0.5.0-beta", default-features = false, features = ["serde", "nightly"] }
+leptos_axum = { version = "0.5.0-beta", optional = true }
+leptos_meta = { version = "0.5.0-beta", default-features = false }
+leptos_router = { version = "0.5.0-beta", default-features = false }
 log = "0.4"
 simple_logger = "4"
 tokio = { version = "1.25.0", features = ["time", "sync", "macros"] }
@@ -35,6 +35,7 @@ strum = { version = "0.24.1", features = ["derive"] }
 rand = { version = "0.8.5", optional = true }
 web-sys = { version = "0.3.64", features = ["Window", "Location", "Screen", "Document", "Element"] }
 wasmtimer = "0.2.0"
+anyhow = "1.0.75"
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
