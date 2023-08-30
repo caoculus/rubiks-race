@@ -36,11 +36,17 @@ pub async fn connect(
 }
 
 pub async fn lobby_loop(mut ws_rx: UnboundedReceiver<WebSocket>) {
-    let (mut event_tx, mut event_rx) = mpsc::unbounded_channel::<GameEvent>();
+    loop {
+        wait_for_players(&mut ws_rx).await;
+    }
+}
+
+async fn wait_for_players(ws_rx: &mut UnboundedReceiver<WebSocket>) {
+    let (event_tx, mut event_rx) = mpsc::unbounded_channel::<GameEvent>();
     let mut msg_txs: [Option<UnboundedSender<ServerMessage>>; 2] = std::array::from_fn(|_| None);
     let mut free_ids = vec![0, 1];
 
-    log!("Entering lobby_loop");
+    log!("Waiting for players");
 
     loop {
         select! {
@@ -77,14 +83,11 @@ pub async fn lobby_loop(mut ws_rx: UnboundedReceiver<WebSocket>) {
                     continue;
                 }
 
-                let full_msg_txs = std::mem::take(&mut msg_txs).map(|tx| tx.expect("msg_tx is None"));
-                let old_event_rx = event_rx;
-
-                free_ids = vec![0, 1];
-                (event_tx, event_rx) = mpsc::unbounded_channel();
+                let full_msg_txs = msg_txs.map(|tx| tx.expect("msg_tx is None"));
 
                 log!("Starting new game");
-                tokio::spawn(game_loop(old_event_rx, full_msg_txs));
+                tokio::spawn(game_loop(event_rx, full_msg_txs));
+                return;
             }
         }
     }
